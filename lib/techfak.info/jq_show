@@ -1,0 +1,1 @@
+.items|sort_by(.date_modified)|reverse|.[]|select(._tf_params.state=="active")|{title: .title, short: .summary, long: .content_html, eta: ._tf_params.eta, id: .id}

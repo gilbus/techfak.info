@@ -1,0 +1,44 @@
+#!/bin/bash
+# use `make local_install` to copy
+
+set -eu
+
+host=
+port=
+user=
+
+known_hosts=
+identity=
+
+entries_file=https://techfak.info/techfak_info.json
+
+bin_dir=$(dirname "${0}")
+
+techfak_info_scripts="${bin_dir}/../lib/techfak.info"
+
+key_tmpfile=
+entry_tmpfile=
+case ${1:-} in
+	edit)
+        trap 'shred -u ${key_tmpfile} ${entry_tmpfile}' EXIT
+		# load REPL to add/edit an entry
+        "${techfak_info_scripts}"/techfak_info-entry -l <(curl -s ${entries_file}) -o ${entry_tmpfile} --error-on-abort
+        # pass the new entry to the `API` script which will check for correctness and finally add it to the entry file
+        ssh -p${port} -o GlobalKnownHostsFile=${known_hosts} ${pubkey_option} ${user}@${host} /usr/local/lib/techfak.info/techfak_info-add "'$(cat ${entry_tmpfile})'"
+        # trigger rebuild of the static websites to reflect the changes to the entries
+        ssh -p${port} -o GlobalKnownHostsFile=${known_hosts} ${pubkey_option} ${user}@${host} /usr/local/lib/techfak.info/techfak_info-build
+        
+	;;
+	show)
+	    echo "Currently active entries"
+        curl -s ${entries_file} | jq -f "${techfak_info_scripts}"/jq_show || echo 'No connection or malformatted JSON'
+    ;;
+    search)
+        echo "Searching for ${2:-''}"
+        curl -s ${entries_file} | jq --arg query "${2:-}" -f "${techfak_info_scripts}"/jq_search || echo 'No connection or malformatted JSON'
+    ;;
+	*)
+        echo "Usage: $(basename -- "${0}") {edit,show,search (case sensitive)}";
+	;;
+esac	
+

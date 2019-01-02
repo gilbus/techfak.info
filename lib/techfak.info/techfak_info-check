@@ -1,0 +1,141 @@
+#!/usr/bin/env python3
+"""
+Expected to be executed every hour by an external mechanism (cron/systemd-timer).
+Moves expired entries to archive and sends reminders concerning entires without an ETA. Intervals are specified inside
+the config file.
+"""
+
+from argparse import ArgumentParser, FileType, ArgumentDefaultsHelpFormatter
+from datetime import timedelta, datetime
+from typing import List
+from json import dump
+
+from techfak_info import COMMON, CHECK, MAIL, JSONFEED
+from techfak_info.Entry import Entry, State, EntryJSONEncoder
+from techfak_info.comm_lib import write_mail
+
+now = datetime.now()
+
+
+def main() -> int:
+    parser = ArgumentParser(
+        description=__doc__,
+        epilog="GPLv3 @ tl",
+        formatter_class=ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument(
+        "-l",
+        "--local-file",
+        type=FileType(mode="r+"),
+        default=COMMON["data_path"],
+        help="Path to local jsonfeed-file to use instead of the one defined in the config file.",
+    )
+    parser.add_argument(
+        "-r",
+        "--send-reminder",
+        action="store_true",
+        help="Send reminder independent of current time.",
+    )
+    parser.add_argument(
+        "-n",
+        "--no-move",
+        action="store_true",
+        help="Do not move expired entries to the archive",
+    )
+
+    args = parser.parse_args()
+
+    entries = Entry.from_jsonfeed(args.local_file.read())
+
+    # check for expired ETAs
+    expired_timedelta = timedelta(
+        hours=CHECK.getint("expired_eta_archive_move_hours", 2)
+    )
+
+    expired_entries = expired_etas(entries, expired_timedelta)
+    print(
+        "Found {} entries with expired ETAs, sending update mail to {}".format(
+            len(expired_entries), MAIL["outdated_to"]
+        )
+    )
+
+
+    if expired_entries:
+        # write mail concerning outdated entries
+        write_mail(
+            subject=MAIL["outdated_subject"],
+            to=MAIL["outdated_to"],
+            body=MAIL["outdated_body"].format(
+                entries="\n".join(
+                    str(e) for e in sorted(expired_entries, key=lambda e: e.title)
+                )
+            ),
+        )
+
+    if not args.no_move:
+        print("Moving expired entries to archive.")
+        # update modification time and move to archive
+        for entry in expired_entries:
+            entry.state = State.archive
+            entry.date_modified = Entry.get_rfc3339_now()
+    else:
+        print("Not moving expired entries to archive as requested.")
+
+    JSONFEED.update({"items": entries})
+    args.local_file.seek(0)
+    # add items to jsonfeed
+    dump(
+        JSONFEED,
+        args.local_file,
+        cls=EntryJSONEncoder,
+        sort_keys=True,
+        indent=4,
+        ensure_ascii=False,
+    )
+    print("Successfully written entries to {}".format(args.local_file.name))
+
+    # check whether it is the right time to send a reminder concerning entries
+    # without ETA and whether such exist
+    entries_without_eta = [
+        e for e in entries if e.state is not State.archive and not e.eta
+    ]
+    print(
+        "Found {} entries without an ETA, sending info mail to {}".format(
+            len(entries_without_eta), MAIL["no_eta_to"]
+        )
+    )
+    if entries_without_eta and (is_time_to_remind() or args.send_reminder):
+        write_mail(
+            subject=MAIL["no_eta_subject"],
+            to=MAIL["no_eta_to"],
+            body=MAIL["no_eta_body"].format(
+                entries="\n".join(
+                    str(e) for e in sorted(entries_without_eta, key=lambda e: e.title)
+                )
+            ),
+        )
+    return 0
+
+
+def is_time_to_remind() -> bool:
+    try:
+        weekday_str, hour_str = CHECK.get("message_time_for_non_eta", "1:8").split(":")
+        weekday, hour = int(weekday_str), int(hour_str)
+    except ValueError:
+        weekday, hour = 1, 8
+    return now.isoweekday() == weekday and now.hour == hour
+
+
+def expired_etas(
+    entries: List[Entry], expired_timedelta: timedelta, now=now
+) -> List[Entry]:
+    expired_entries = []  # type: List[Entry]
+    # only look at non-archived entries with an ETA
+    for entry in filter(lambda e: e.state is not State.archive and e.eta, entries):
+        if now - entry.eta > expired_timedelta:
+            expired_entries.append(entry)
+    return expired_entries
+
+
+if __name__ == "__main__":
+    exit(main())

@@ -1,0 +1,114 @@
+#!/usr/bin/env python3
+"""
+Builds static websites from a jsonfeed formatted file.
+If called without arguments all targets are build and moved according to config.
+"""
+from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter, FileType
+from typing import List, Optional, TextIO, Any, Dict
+from datetime import datetime
+from enum import Enum
+
+try:
+    from jinja2 import Environment, FileSystemLoader
+except ImportError:
+    exit("This package requires python(3)-jinja2, please install it.")
+
+
+from techfak_info.Entry import Entry, State
+from techfak_info import COMMON
+
+
+class BuildTargets(Enum):
+    infopage = ("infopage.html.j2", COMMON["info_page"])
+    monitor = ("monitor.html.j2", COMMON["monitor_page"])
+
+    def __str__(self) -> str:
+        return self.name
+
+    def build(
+        self,
+        env: Environment,
+        render_objects: Dict[str, Any],
+        custom_output: Optional[TextIO] = None,
+    ) -> None:
+        template_file, default_output = self.value
+        output_file = custom_output or open(default_output, "w")
+        template = env.get_template(template_file)
+
+        page_src = template.render(render_objects)
+        print("Successfully rendered {}".format(self.name))
+
+        output_file.write(page_src)
+        output_file.close()
+        print("Wrote {} to {}".format(self.name, output_file.name))
+
+
+def datetime_format(value: Optional[datetime], _format="%Y-%m-%d %H:%M") -> str:
+    if not value:
+        return "&nbsp;"
+
+    if not value.hour and not value.minute:
+        # hide empty hours and minutes
+        _format = "%Y-%m-%d"
+    return value.strftime(_format)
+
+
+def main() -> int:
+    parser = ArgumentParser(
+        formatter_class=ArgumentDefaultsHelpFormatter,
+        description=__doc__,
+        epilog="GPLv3 @ tl",
+    )
+    parser.add_argument(
+        "-l",
+        "--local-file",
+        help="Path to jsonfeed file containing the entries to render",
+        type=FileType("r"),
+        default=COMMON["data_path"],
+    )
+    parser.add_argument(
+        "-o", "--output", type=FileType("w"), help="Output file or `-` for stdout"
+    )
+    parser.add_argument(
+        "--hide-all",
+        action="store_true",
+        help="""Treat all active entries as hidden. Useful to
+    simulate such simulation with having to edit the entries.""",
+    )
+    parser.add_argument(
+        "-p",
+        "--page",
+        choices=[str(target) for target in BuildTargets] + ["all"],
+        help="Which page to build. In case of `all` output files are taken from config.",
+        default="all",
+    )
+    args = parser.parse_args()
+    entries = Entry.from_jsonfeed(args.local_file.read())  # type: List[Entry]
+    entries.sort(key=lambda e: e.date_modified, reverse=True)
+
+    env = Environment(loader=FileSystemLoader(COMMON["template_dir"]))
+
+    # add custom filter to support printing of datetime objects
+    env.filters["datetime_format"] = datetime_format
+
+    render_objects = {
+        "active_entries": [e for e in entries if e.state is State.active],
+        "archive_entries": [e for e in entries if e.state is State.archive],
+        "now": datetime.now(),
+    }
+
+    if args.hide_all:
+        print("Hiding all active entries as requested.")
+        render_objects["active_entries"] = []
+
+    if args.page == "all":
+        for target in BuildTargets:  # type: BuildTargets
+            target.build(env, render_objects)
+    else:
+        BuildTargets[args.page].build(env, render_objects, args.output)
+
+    return 0
+
+
+if __name__ == "__main__":
+    exit(main())

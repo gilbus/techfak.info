@@ -1,0 +1,3 @@
+.items|sort_by(.date_modified)|reverse|.[]
+|if contains({title: $query}) or contains({summary: $query}) or contains({content_html: $query}) then . else empty end
+|{title: .title, short: .summary, long: .content_html, eta: ._tf_params.eta, id: .id, state: ._tf_params.state}

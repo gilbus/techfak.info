@@ -1,0 +1,111 @@
+#!/usr/bin/env python3
+"""
+Accepts one JSON-formatted entry and either adds it as a new one or,
+in case the entry already contains an id, replaces an existing one.
+"""
+
+from argparse import ArgumentParser, FileType, ArgumentDefaultsHelpFormatter
+from json import dumps, dump
+from sys import stdin
+
+from techfak_info.Entry import Entry, EntryJSONEncoder
+from techfak_info import JSONFEED, COMMON, MAIL
+from techfak_info.comm_lib import write_mail
+
+
+def main() -> int:
+    parser = ArgumentParser(
+        description=__doc__,
+        epilog="GPLv3 @ tl",
+        formatter_class=ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument("entry", type=str, help="JSON-formatted entry")
+    parser.add_argument(
+        "-l",
+        "--local-file",
+        type=FileType(mode="r+"),
+        default=COMMON["data_path"],
+        nargs="?",
+        help="""Path to local jsonfeed-file to modify instead of the one defined in the
+        config file. Use - for stdout and to simulate no existent entries.""",
+    )
+
+    args = parser.parse_args()
+
+    no_file = args.local_file is stdin
+
+    if not no_file:
+        current_entries = Entry.from_jsonfeed(args.local_file.read())
+    else:
+        current_entries = []
+
+    try:
+        passed_entry = Entry.from_jsonfeed_item(args.entry)
+    except ValueError as e:
+        print(e.args)
+        return 1
+
+    if passed_entry.id:
+        new_entry = False
+        try:
+            index_of_entry_to_replace = {
+                entry.id: index for index, entry in enumerate(current_entries)
+            }[
+                passed_entry.id
+            ]
+        except KeyError:
+            print("ID of passed Entry is not known")
+            return 1
+
+        current_entries[index_of_entry_to_replace] = passed_entry
+    else:
+        new_entry = True
+        # treat as new entry, still needs an id
+        passed_entry.id = Entry.generate_entry_id()
+        current_entries.append(passed_entry)
+
+    # update modification time
+    passed_entry.date_modified = Entry.get_rfc3339_now()
+
+    JSONFEED.update({"items": current_entries})
+    if not no_file:
+        # set pointer inside file to beginning
+        args.local_file.seek(0)
+        # and delete all of its current content since we will rewrite the whole file
+        args.local_file.truncate()
+        # add items to jsonfeed
+        dump(
+            JSONFEED,
+            args.local_file,
+            cls=EntryJSONEncoder,
+            sort_keys=True,
+            indent=4,
+            ensure_ascii=False,
+        )
+        print("Integrated entry into {}".format(args.local_file.name))
+    else:
+        print(
+            dumps(
+                JSONFEED,
+                cls=EntryJSONEncoder,
+                sort_keys=True,
+                indent=4,
+                ensure_ascii=False,
+            )
+        )
+
+    print("Sending notification mail to {}".format(MAIL["update_to"]))
+    # send mail to inform about new or modified entry
+    write_mail(
+        subject=MAIL["update_subject"],
+        to=MAIL["update_to"],
+        body=MAIL["update_body"].format(
+            entry=repr(passed_entry), action="added" if new_entry else "modified"
+        ),
+    )
+
+    return 0
+
+
+if __name__ == "__main__":
+    exit(main())

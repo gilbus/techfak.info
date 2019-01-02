@@ -1,0 +1,213 @@
+"""
+This class represents a techfak.info entry. It abstracts from the JSON-Feed structure.
+"""
+from enum import Enum
+from datetime import datetime
+from uuid import uuid4
+from json import loads, dumps, JSONEncoder
+from typing import List, Union, Optional
+
+from dateutil.parser import parse as parse_date
+
+from . import JsonFeedEntry
+
+TODAY = datetime(
+    year=datetime.today().year, month=datetime.today().month, day=datetime.today().day
+)
+
+
+class Severity(Enum):
+    green = "green"
+    yellow = "yellow"
+    red = "red"
+
+    def __str__(self) -> str:
+        return self.name
+
+
+class State(Enum):
+    active = "active"
+    hidden = "hidden"
+    archive = "archive"
+
+    def __str__(self) -> str:
+        return self.value
+
+
+class Entry:
+
+    def __init__(self, template: Optional["Entry"] = None, skip_id=False) -> None:
+
+        self.title = template.title if template else ""  # type: str
+        self.summary = template.summary if template else ""  # type: str
+        self.html = template.html if template else ""  # type: str
+        self.severity = template.severity if template else Severity.green  # type: Severity
+        self.begin = TODAY
+        self.eta = None  # type: Optional[datetime]
+        self.date_modified = Entry.get_rfc3339_now()
+        self.state = State.active
+        self.id = Entry.generate_entry_id() if not skip_id else None
+
+        self.date_published = Entry.get_rfc3339_now()
+
+    @staticmethod
+    def generate_entry_id() -> str:
+        return str(uuid4())
+
+    @staticmethod
+    def get_rfc3339_now() -> datetime:
+        now = datetime.now()
+        # dump microseconds since the JSON Feed standard does not use them
+        return datetime(
+            year=now.year,
+            month=now.month,
+            day=now.day,
+            hour=now.hour,
+            minute=now.minute,
+            second=now.second,
+            microsecond=0,
+        )
+
+    @classmethod
+    def from_jsonfeed(cls, feed_str: str) -> List["Entry"]:
+        try:
+            feed = loads(feed_str)
+        except (ValueError, TypeError):
+            print("Invalid JSON: `{}`".format(feed_str))
+            raise
+
+        feed_items = feed["items"]  # type: List[JsonFeedEntry]
+        return [cls.from_jsonfeed_item(item) for item in feed_items]
+
+    @classmethod
+    def from_jsonfeed_item(cls, item: Union[JsonFeedEntry, str]) -> "Entry":
+
+        # prevent generation of new id, no id means that this a new entry
+        new_entry = Entry(skip_id=True)
+        if isinstance(item, str):
+            try:
+                entry = loads(item)  # type: JsonFeedEntry
+            except ValueError:
+                print("Invalid JSON: `{}`".format(item))
+                raise
+
+        else:
+            entry = item
+
+        try:
+            # mandatory fields
+            new_entry.title = entry["title"]
+            if not new_entry.title:
+                raise ValueError("`title` must not be empty.")
+
+        except KeyError as e:
+            raise ValueError(
+                "Passed JSON-Feed item is incomplete, missing `title`".format(e)
+            )
+
+        try:
+            new_entry.summary = entry["summary"]
+            if not new_entry.summary:
+                raise ValueError("`summary` must not be empty")
+
+        except KeyError as e:
+            raise ValueError(
+                "Passed JSON-Feed item is incomplete, missing: `summary`".format(e)
+            )
+
+        try:
+            new_entry.severity = Severity[entry["_tf_params"]["severity"]]
+        except KeyError as e:
+            raise ValueError(
+                "Passed JSON-Feed item is incomplete, missing or wrong:"
+                " `_tf_params.severity`".format(e)
+            )
+
+        # non-mandatory fields
+        try:
+            new_entry.state = State[entry["_tf_params"]["state"]]
+        except KeyError:
+            pass
+        try:
+            new_entry.begin = parse_date(entry["_tf_params"]["begin"])
+        except KeyError:
+            pass
+        try:
+            new_entry.eta = parse_date(entry["_tf_params"]["eta"]) if entry[
+                "_tf_params"
+            ][
+                "eta"
+            ] else None
+        except KeyError:
+            pass
+        try:
+            new_entry.date_modified = parse_date(entry["date_modified"])
+        except KeyError:
+            pass
+        try:
+            new_entry.date_published = parse_date(entry["date_published"])
+        except KeyError:
+            pass
+        try:
+            new_entry.id = entry["id"]
+        except KeyError:
+            pass
+        try:
+            new_entry.html = entry["content_html"]
+        except KeyError:
+            pass
+
+        return new_entry
+
+    def as_new(self) -> str:
+        """
+        Dumps this entry as json encoded string. In contrast to __repr__ all
+        autogenerated fields are skipped. The string is thought to be passed to the API
+        communicating with the status server.
+        :return: Same as repr but stripped autogenerated properties
+        """
+        json_version = self.as_jsonfeed_dict()
+        # delete all keys which should not be set for a new entry, ie a local generated new entry
+        # for which this keys should be generated on the server
+        del json_version["id"]
+        del json_version["date_modified"]
+        return dumps(json_version, ensure_ascii=False)
+
+    def as_jsonfeed_dict(self) -> JsonFeedEntry:
+        """
+        Transforms an `Entry` object into JsonFeed/Dictionary representation
+        :return: Entry as dictionary
+        """
+        return {
+            "date_published": self.date_published.isoformat(),
+            "date_modified": self.date_modified.isoformat(),
+            "title": self.title,
+            "summary": self.summary,
+            "content_html": self.html,
+            "id": self.id,
+            "_tf_params": {
+                "begin": self.begin.isoformat(),
+                "eta": self.eta.isoformat() if self.eta else None,
+                "state": str(self.state),
+                "severity": str(self.severity),
+            },
+        }
+
+    def __str__(self) -> str:
+        return self.title
+
+    def __repr__(self) -> str:
+        return dumps(self.as_jsonfeed_dict(), sort_keys=True, ensure_ascii=False, indent=4)
+
+
+class EntryJSONEncoder(JSONEncoder):
+    """
+    Custom JSON encoder to be able to encode entries as json transparently
+    """
+
+    def default(self, o):
+        if isinstance(o, Entry):
+            return o.as_jsonfeed_dict()
+
+        else:
+            return JSONEncoder.default(self, o)

@@ -1,0 +1,39 @@
+body {
+ /* Double the size of the footer + reasonable margin
+ *  The footer becomes double lined on sm viewport
+ */
+  margin-bottom: 130px;
+    font-size: 1.1rem;
+}
+
+.card-header {
+    font-size: 1.5rem;
+}
+
+html {
+  position: relative;
+  min-height: 100%;
+}
+
+#pills-tab {
+    border-radius: 5px;
+}
+
+.jumbotron {
+    padding-bottom: 0;
+    padding-top: 2rem;
+}
+
+footer {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  height: auto; /* Set the fixed height of the footer here */
+  line-height: 60px; /* Vertically center the text there */
+  background-color: #666666;
+  color: #e6e6e6;
+}
+
+footer a {
+  color: #e6e6e6;
+}

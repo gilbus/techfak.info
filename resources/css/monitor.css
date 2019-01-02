@@ -1,0 +1,28 @@
+body {
+    font-size: 2rem;
+}
+
+.jumbotron {
+    padding-bottom: 0;
+}
+
+hr {
+    height: 1px;
+}
+.carousel-item {
+    height: 100%;
+}
+
+.carousel-indicators .active {
+    background-color: black;
+}
+
+.carousel-indicators li {
+    width: 30px;
+    height: 3px;
+    background-color: lightgray;
+}
+
+.carousel-indicators {
+    bottom: -50px;
+}

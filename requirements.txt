@@ -1,0 +1,4 @@
+# specify versions of packages available as system packages on the status machine
+jinja2==2.8
+python-dateutil==2.4.2
+colorama==0.3.2

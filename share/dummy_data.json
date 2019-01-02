@@ -1,0 +1,93 @@
+{
+  "feed_url": "https://techfak.info/techfak_info.json",
+  "home_page_url": "https://techfak.info",
+  "items": [
+    {
+      "_tf_params": {
+        "begin": "2018-05-10T10:00:00",
+        "eta": "2018-05-10T18:00:00",
+        "severity": "green",
+        "state": "active"
+      },
+      "content_html": "Da Infrastruktur gewartet werden muss, kann das am Mittwoch nachmittag nicht genutzt werden. Bei vorzeitiger Beendigung wird dieser Eintrag entsprechend aktualisiert.",
+      "date_modified": "2018-04-15T16:18:36",
+      "date_published": "2017-05-31T17:22:45",
+      "id": "8e2433a-d1e7-56e7-a38-9c0a33bf223b",
+      "summary": "Da Infrastruktur gewartet werden muss, kann das am Mittwoch nachmittag nicht genutzt werden.",
+      "title": "wegen Wartungsarbeiten nicht nutzbar"
+    },
+    {
+      "_tf_params": {
+        "begin": "2017-05-28T00:00:00",
+        "eta": null,
+        "severity": "green",
+        "state": "archive"
+      },
+      "content_html": "Es kursieren momentan (mal wieder) Spam-Mails, die dazu auffordern, einen Link zu besuchen, um Mails freizuschalten. Daher noch einmal der Hinweis: Wenn nicht <b>100%</b> bekannt ist, woher eine Mail stammt, sollten aus ihr <b>niemals</b> Links besucht werden.",
+      "date_modified": "2018-04-13T22:26:36",
+      "date_published": "2018-03-02T11:09:45",
+      "id": "18e2433a-d1e7-56e7-a385-9c0a33bf223b",
+      "summary": "Es kursieren momentan (mal wieder) Spam-Mails, die dazu auffordern, einen Link zu besuchen, um Mails freizuschalten.",
+      "title": "Spam mails"
+    },
+    {
+      "_tf_params": {
+        "begin": "2018-02-21T14:00:00",
+        "eta": "2018-02-21T18:00:00",
+        "severity": "green",
+        "state": "archive"
+      },
+      "content_html": "",
+      "date_modified": "2018-04-13T22:52:44",
+      "date_published": "2018-04-13T22:51:22",
+      "id": "7e75d581-d69c-4610-a181-f0b45f6b943c",
+      "summary": "Da Infrastruktur gewartet werden muss, kann das am Mittwoch (2018-02-21) nachmittags nicht genutzt werden.",
+      "title": "wegen Wartungsarbeiten nicht nutzbar"
+    },
+    {
+      "_tf_params": {
+        "begin": "2018-01-10T10:00:00",
+        "eta": "2018-01-12T13:45:00",
+        "severity": "yellow",
+        "state": "active"
+      },
+      "content_html": "",
+      "date_modified": "2018-04-15T21:41:12",
+      "date_published": "2018-04-13T22:54:52",
+      "id": "d3db47e9-12b3-4ba3-a687-0fb3b737d209",
+      "summary": "Auf Grund der Störung des SMB/CIFS Services kommt es zu Beeinträchtigungen bei der Nutzung des Windows Terminal-Servers.",
+      "title": "Windows Terminal-Server nur eingeschränkt verfügbar"
+    },
+    {
+      "_tf_params": {
+        "begin": "2018-04-18T00:00:00",
+        "eta": null,
+        "severity": "red",
+        "state": "active"
+      },
+      "content_html": "Auf Grund eines Hardware-Ausfalls ist aktuell kein DHCP verfügbar. An einem Ersatz wird schnellstmöglich gearbeitet.",
+      "date_modified": "2018-04-15T21:42:22",
+      "date_published": "2018-04-14T00:32:14",
+      "id": "4fe0e3f9-ee68-4b7e-98f9-321e010242eb",
+      "summary": "Auf Grund eines Hardware-Ausfalls ist aktuell kein DHCP verfügbar",
+      "title": "DHCP ausgefallen"
+    },
+    {
+      "_tf_params": {
+        "begin": "2018-04-15T00:28:00",
+        "eta": null,
+        "severity": "yellow",
+        "state": "archive"
+      },
+      "content_html": "",
+      "date_modified": "2018-04-15T00:29:43",
+      "date_published": "2018-04-15T00:29:18",
+      "id": "9e7482e0-93a1-4385-bd63-ef4df4c6b580",
+      "summary": "Das Support-Büro ist außerplanmäßig diese Woche nicht besetzt",
+      "title": "Büro nicht besetzt"
+    }
+  ],
+  "title": "TechFak ‒ Statusseite",
+  "user_comment": "This file/feed stores all the data of the techfak.info.",
+  "version": "https://jsonfeed.org/version/1"
+}

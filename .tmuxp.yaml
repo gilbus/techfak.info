@@ -1,0 +1,26 @@
+session_name: techfak_info work
+start_directory: ./
+windows:
+    - window_name: shell1
+      options:
+          automatic-rename: false
+      panes:
+          - shell_command:
+            - source .venv/bin/activate
+            - clear
+
+    - window_name: shell2
+      options:
+          automatic-rename: false
+      panes:
+          - shell_command:
+            - source .venv/bin/activate
+            - clear
+
+    - window_name: http
+      panes:
+        - python3 -m http.server
+
+    - window_name: smtp
+      panes:
+        - python3 -m smtpd -n -c DebuggingServer localhost:8025

@@ -1,0 +1,34 @@
+#!/bin/bash
+
+# The `local` version of the status script as this is to be deployed to the remote machine
+# Needed in case our infra is down but we'd like to inform the users in case they haven't noticed ^^
+
+set -eu
+
+bin_dir=$(dirname "${0}")
+
+techfak_info_scripts="${bin_dir}/../lib/techfak.info"
+
+entries_file=/srv/www/status/techfak_info.json
+
+entry_tmpfile=/dev/shm/status_entry.tmp.${RANDOM}
+case ${1} in
+	edit)
+        trap 'shred -u  ${entry_tmpfile}' EXIT
+		# load REPL to add/edit an entry
+        "${techfak_info_scripts}"/techfak_info-entry -l ${entries_file} -o ${entry_tmpfile} --error-on-abort
+        # pass the new entry to the `API` script which will check for correctness and finally add it to the entry file
+        read -r entry < ${entry_tmpfile};  "${techfak_info_scripts}"/techfak_info-add "'${entry}'"
+        # trigger rebuild of the static websites to reflect the changes to the entries
+        "${techfak_info_scripts}"/techfak_info-build
+
+	;;
+	get)
+	    echo "Currently active entries"
+        jq '.items[]|select(._tf_params.state == "active")|{title: .title, short: .summary, long: .content_html, eta: ._tf_params.eta, id: .id}' ${entries_file}
+    ;;
+	*)
+		echo "Usage: $(basename -- "${0}") {edit,get}";
+	;;
+esac	
+

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% block head %}
+    <meta charset="UTF-8">
+    <meta http-equiv="refresh" content="300">
+    <title>{% block title %}RBG - Status-Webseite {% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    {#Bootstrap CSS#}
+    <link rel="stylesheet" href="/resources/bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/resources/open-iconic-master/font/css/open-iconic-bootstrap.min.css">
+
+
+    <script src="/resources/js/jquery-3.3.1.slim.min.js"></script>
+    <script src="/resources/bootstrap/js/bootstrap.min.js"></script>
+
+    <link rel="stylesheet" href="/resources/css/base.css">
+  {% endblock %}
+</head>
+<body>
+<header class="jumbotron jumbotron-fluid">
+  <div class="container">
+    {% block header %}
+    {% endblock %}
+  </div>
+</header>
+<div id="content" class="container mb-3">
+  {% block content %}
+  {% endblock %}
+</div>
+<footer>
+  {% block footer %}{% endblock %}
+</footer>
+</body>
+</html>

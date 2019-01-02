@@ -1,0 +1,108 @@
+{% extends 'base.html.j2' %}
+{% block head %}
+  {{ super() }}
+  <link rel="stylesheet" href="/resources/css/infopage.css">
+{% endblock %}
+
+{% block header %}
+  {{ super() }}
+  <h1 class="d-none d-md-block">Aktuelle Informationen der Rechnerbetriebsgruppe der Technischen Fakultät</h1>
+  <h1 class="d-sm-block d-md-none">Aktuelle Informationen der RBG</h1>
+  <div class="tf-blue d-none d-lg-block d-xl-block container pb-5 pr-0">
+    <div class="row">
+      <div class="col-3">
+        <a href="https://techfak.net" class="btn btn-dark">Dokumentation <span
+          class="oi oi-external-link"></span></a>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% set severity_icons = {
+'green': {'icon': 'bell', 'title': 'Ank&uuml;ndigung', 'color': 'success'},
+'yellow': {'icon': 'bug', 'title': 'St&ouml;rung', 'color': 'warning'},
+'red': {'icon': 'warning', 'title': 'Ausfall', 'color': 'danger'}
+} %}
+
+{% set archive_icon, archive_title = 'check', 'Gel&ouml;st' %}
+
+{% macro card(entry, summary_only=False) -%}
+  {% set entry_style = severity_icons[entry.severity.name] %}
+  {% set empty_str = '&nbsp;' %}
+  <div class="card border-{{ entry_style.color }} mb-3">
+    <div class="card-header">
+      <strong>{{ entry.title }}</strong>
+      <span
+        class="oi oi-{{ entry_style.icon  if entry.state.value != 'archive' else archive_icon }}
+                    float-sm-right text-{{ entry_style.color }}"
+        title="{{ entry_style.title if entry.state.value != 'archive' else archive_title }}"></span>
+    </div>
+    <div class="card-body">
+      <dl class="row">
+        <dt class="col-sm-2">Start</dt>
+        <dd class="col-sm-10">{{ entry.begin|datetime_format }}</dd>
+        <dt class="col-sm-2">Ende</dt>
+        <dd class="col-sm-10">{{ entry.eta|datetime_format }}</dd>
+        {% if summary_only or not entry.html %}
+          <dt class="col-sm-2">Inhalt</dt>
+          <dd class="col-sm-10">{{ entry.summary }}</dd>
+        {% else %}
+          <dt class="col-sm-2">Inhalt</dt>
+          <dd class="col-sm-10">{{ entry.html }}</dd>
+        {% endif %}
+      </dl>
+    </div>
+    <div class="card-footer text-muted">
+      Zuletzt aktualisiert: {{ entry.date_modified|datetime_format }}
+    </div>
+  </div>
+{%- endmacro %}
+
+{% macro no_active_entries() %}
+
+  <div class="text-center">
+    <img src="/resources/img/tux_0.1_by_mdh3ll.svg" alt="A happy Tux" style="height: 50vh; max-width: 90vw">
+    <h2 class="text-center mt-4">Uns sind aktuell keine Probleme gemeldet</h2>
+  </div>
+{% endmacro %}
+
+{% block content %}
+  <ul class="nav nav-pills nav-fill mb-3 border border-primary" id="pills-tab" role="tablist">
+    <li class="nav-item">
+      <a class="nav-link active" id="current-tab" data-toggle="pill" href="#current" role="tab"
+         aria-controls="current"
+         aria-selected="true">Aktuelles</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" id="archive-tab" data-toggle="pill" href="#archive" role="tab"
+         aria-controls="archive"
+         aria-selected="false">Archiv</a>
+    </li>
+  </ul>
+  <div class="tab-content">
+    <div class="tab-pane fade show active" id="current" role="tabpanel" aria-labelledby="current-tab">
+      {% if not active_entries %}
+        {{ no_active_entries() }}
+      {% else %}
+        {% for entry in active_entries %}
+          {{ card(entry) }}
+        {% endfor %}
+      {% endif %}
+    </div>
+    <div class="tab-pane fade" id="archive" role="tabpanel" aria-labelledby="archive-tab">
+      {% for entry in archive_entries %}
+        {#                archive_entries cannot be empty#}
+        {{ card(entry) }}
+      {% endfor %}
+    </div>
+  </div>
+{% endblock %}
+
+{% block footer %}
+  <div class="container w-75">
+    &copy; {{ now.year }} Universit&auml;t Bielefeld
+    <div class="float-sm-right">
+      <a href="https://techfak.net/impressum"><u>Impressum</u></a> | <a href="https://techfak.net/kontakt"><u>Kontakt</u></a>
+    </div>
+  </div>
+{% endblock %}

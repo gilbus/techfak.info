@@ -1,0 +1,47 @@
+{% extends 'base.html.j2' %}
+{% from 'infopage.html.j2' import card, no_active_entries with context %}
+{% block head %}
+  {{ super() }}
+  <link rel="stylesheet" href="/resources/css/monitor.css">
+{% endblock %}
+
+{% block header %}
+  {{ super() }}
+
+  <h1>Aktuelle Informationen</h1>
+  <h3>Mehr Details unter: <u>https://techfak.info</u></h3>
+  <hr class="tf-blue">
+{% endblock %}
+
+{% block content %}
+  {% if not active_entries %}
+    {{ super() }}
+    {{ no_active_entries() }}
+  {% else %}
+    {% set slide_duration = 7 * 1000 %}
+    {% set no_of_cards_per_slide = 1 %}
+    {% set no_of_slides = ((active_entries|length)/no_of_cards_per_slide)|round(0, 'ceil')|int %}
+    <div class="carousel slide" id="monitorCarousel"
+      {#         auto enable the carousel#}
+         data-ride="carousel" data-interval={{ slide_duration }}>
+      <ol class="carousel-indicators">
+        {% for slide_no in range(no_of_slides) %}
+          <li data-target="#monitorCarousel" data-slide-to="{{ loop.index0 }}"
+              class="{{ "active" if loop.first else "" }}"></li>
+        {% endfor %}
+      </ol>
+      <div class="carousel-inner">
+        {% for entries in active_entries|batch(no_of_cards_per_slide) %}
+          <div class="carousel-item {{ "active" if loop.first else "" }}">
+            {% for entry in entries %}
+              {{ card(entry, summary_only=True) }}
+            {% endfor %}
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+{% endblock %}
+
+{% block footer %}
+{% endblock %}
